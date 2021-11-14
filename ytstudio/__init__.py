@@ -17,7 +17,7 @@ class Studio:
     TRANSFERRED_BYTES = 0
     CHUNK_SIZE = 1024*2
 
-    def __init__(self, cookies: dict = {'VISITOR_INFO1_LIVE': '', 'PREF': '', 'LOGIN_INFO': '', 'HSID': '', 'SAPISID': '', 'YSC': '', 'SIDCC': ''}):
+    def __init__(self, cookies: dict = {'VISITOR_INFO1_LIVE': '', 'PREF': '', 'LOGIN_INFO': '', 'HSID': '', 'SAPISID': '', 'YSC': '', 'SIDCC': ''}, session_token: str = ""):
         self.SAPISIDHASH = self.generateSAPISIDHASH(cookies['SAPISID'])
         self.Cookie = " ".join([f"{c}={cookies[c]};" for c in cookies.keys()])
         self.HEADERS = {
@@ -32,6 +32,7 @@ class Studio:
         self.config = {}
         self.js = js2py.EvalJs()
         self.js.execute("var window = {};")
+        self.session_token = session_token
 
     def __del__(self):
         self.loop.create_task(self.session.close())
@@ -169,7 +170,7 @@ class Studio:
                         "returnLogEntry": True,
                         "internalExperimentFlags": [],
                         "sessionInfo": {
-                            "token": ""
+                            "token": self.session_token
                         }
                     },
                     "user": {
@@ -179,7 +180,8 @@ class Studio:
                             },
                             "externalChannelId": self.config['CHANNEL_ID']
                         },
-                        "serializedDelegationContext": ""
+                        "serializedDelegationContext": "",
+                        "onBehalfOfUser": "",
                     },
                     "clientScreenNonce": ""
                 },

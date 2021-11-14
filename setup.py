@@ -1,13 +1,13 @@
 
-from setuptools import setup
+import setuptools
 import os
 
-required = open(os.path.join(os.getcwd(), "requirements.txt"), "r").read().splitlines()
+required = ["js2py", "aiohttp", "pyquery", "aiofiles"]
 long_description = open('README.md').read()
 
-setup(
+setuptools.setup(
     name='ytstudio',
-    version='1.0.0',
+    version='1.0.5',
     description='Unofficial API for Youtube Studio.',
     long_description=long_description,
     author='Yusuf Usta',
@@ -25,6 +25,7 @@ setup(
         'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
-        'Programming Language :: Python :: 3.9'
+        'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10'
     ],
 )
