@@ -1,7 +1,7 @@
 
 import setuptools
 
-required = open("requirements.txt", "r").readlines()
+required = ["js2py", "aiohttp", "pyquery", "aiofiles"]
 long_description = open('README.md').read()
 
 setuptools.setup(
