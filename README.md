@@ -6,22 +6,25 @@ Unofficial Async YouTube Studio API. Set of features limited or not provided by 
 
 ## Installation
 
-You can install with PIP.
+You can install with [PIP](https://pypi.org/project/ytstudio/).
 
 `pip install ytstudio`
 
 ## Features
 
-- Async
-- Uploading Video (**NOT LIMITED** - official API's videos.insert charges you 1600 quota units)
-- Deleting Video
-- Edit Video
+Look at the documentation: [Click here](https://yusufusta.github.io/ytstudio/)
 
-## Examples
+- Fully Async
+- [Uploading Video](https://yusufusta.github.io/ytstudio/#ytstudio.Studio.uploadVideo) - [Example](https://github.com/yusufusta/ytstudio/blob/master/examples/upload_video.py) (**NOT LIMITED** - official API's videos.insert charges you 1600 quota units)
+- [Deleting Video](https://yusufusta.github.io/ytstudio/#ytstudio.Studio.deleteVideo) - [Example](https://github.com/yusufusta/ytstudio/blob/master/examples/edit_video.py#L29)
+- [Edit Video](https://yusufusta.github.io/ytstudio/#ytstudio.Studio.editVideo) - [Example](https://github.com/yusufusta/ytstudio/blob/master/examples/edit_video.py#L13)
+- [Get Video(s)](https://yusufusta.github.io/ytstudio/#ytstudio.Studio.listVideos) - [Example](https://github.com/yusufusta/ytstudio/blob/master/examples/get_videos.py#L7)
 
-**Note:** You need cookies. Use an cookie manager([EditThisCookie](https://chrome.google.com/webstore/detail/editthiscookie/fngmhnnpilhplaeedifhccceomclgfbg?hl=tr)) for needed cookies.
+## Login
 
-> You need SESSION_TOKEN for (upload/edit/delete) video. [How to get Session Token?](https://github.com/adasq/youtube-studio#preparing-authentication)
+You need cookies for login. Use an cookie manager([EditThisCookie](https://chrome.google.com/webstore/detail/editthiscookie/fngmhnnpilhplaeedifhccceomclgfbg?hl=tr)) for [needed cookies.](https://github.com/yusufusta/ytstudio/blob/master/examples/login.json)
+
+Also you need SESSION_TOKEN for (upload/edit/delete) video. [How to get Session Token?](https://github.com/adasq/youtube-studio#preparing-authentication)
 
 ## TO-DO
 
