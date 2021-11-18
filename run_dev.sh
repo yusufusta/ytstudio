@@ -1,0 +1,2 @@
+pdoc --html ytstudio
+pytest
