@@ -2,6 +2,8 @@ class Templates:
     channelId = ""
     videoId = ""
     sessionToken = ""
+    botguardResponse = ""
+    delegatedSessionId = ""
 
     CLIENT = {
         "clientName": 62,
@@ -16,6 +18,8 @@ class Templates:
         self.config = config
         self.channelId = self.config["channelId"]
         self.sessionToken = self.config["sessionToken"]
+        self.botguardResponse = self.config["botguardResponse"] if "botguardResponse" in self.config else ""
+        self.delegatedSessionId = self.config["delegatedSessionId"] if "delegatedSessionId" in self.config else ""
         self._()
 
     def setVideoId(self, videoId):
@@ -86,14 +90,14 @@ class Templates:
                     }
                 },
                 "user": {
+                    "onBehalfOfUser": self.delegatedSessionId,
                     "delegationContext": {
+                        "externalChannelId": self.channelId,
                         "roleType": {
                             "channelRoleType": "CREATOR_CHANNEL_ROLE_TYPE_OWNER"
-                        },
-                        "externalChannelId": self.channelId
+                        }
                     },
-                    "serializedDelegationContext": "",
-                    "onBehalfOfUser": ""
+                    "serializedDelegationContext": ""
                 },
                 "clientScreenNonce": ""
             },
@@ -104,6 +108,9 @@ class Templates:
                 "externalChannelId": self.channelId
             }
         }
+
+        if self.botguardResponse and self.botguardResponse != "":
+            self.UPLOAD_VIDEO["botguardClientResponse"] = self.botguardResponse
 
         self.METADATA_UPDATE = {
             "encryptedVideoId": self.videoId,

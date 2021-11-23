@@ -26,7 +26,7 @@ class Studio:
         self.SAPISIDHASH = self.generateSAPISIDHASH(cookies['SAPISID'])
         self.cookies = cookies
         self.Cookie = " ".join(
-            [f"{c}={cookies[c]};" if not c == "SESSION_TOKEN" else "" for c in cookies.keys()])
+            [f"{c}={cookies[c]};" if not c in ["SESSION_TOKEN", "BOTGUARD_RESPONSE"] else "" for c in cookies.keys()])
         self.HEADERS = {
             'Authorization': f'SAPISIDHASH {self.SAPISIDHASH}',
             'Content-Type': 'application/json',
@@ -67,7 +67,7 @@ class Studio:
 
         INNERTUBE_API_KEY = self.js.window.ytcfg.data_.INNERTUBE_API_KEY
         CHANNEL_ID = self.js.window.ytcfg.data_.CHANNEL_ID
-        # DELEGATED_SESSION_ID = js.window.ytcfg.data_.DELEGATED_SESSION_ID Looking Google removed this key
+        DELEGATED_SESSION_ID = self.js.window.ytcfg.data_.DELEGATED_SESSION_ID
 
         if INNERTUBE_API_KEY == None or CHANNEL_ID == None:
             raise Exception(
@@ -76,7 +76,9 @@ class Studio:
                        'CHANNEL_ID': CHANNEL_ID, 'data_': self.js.window.ytcfg.data_}
         self.templates = Templates({
             'channelId': CHANNEL_ID,
-            'sessionToken': self.cookies['SESSION_TOKEN']
+            'sessionToken': self.cookies['SESSION_TOKEN'],
+            'botguardResponse': self.cookies['BOTGUARD_RESPONSE'] if 'BOTGUARD_RESPONSE' in self.cookies else '',
+            'delegatedSessionId': DELEGATED_SESSION_ID
         })
 
         return True
@@ -133,7 +135,7 @@ class Studio:
         _ = json.loads(_)
         return _['scottyResourceId']
 
-    async def uploadVideo(self, file_name, title=f"New Video {round(time.time())}", description='This video uploaded by github.com/yusufusta/ytstudio', privacy='PRIVATE', draft=False, progress=None):
+    async def uploadVideo(self, file_name, title=f"New Video {round(time.time())}", description='This video uploaded by github.com/yusufusta/ytstudio', privacy='PRIVATE', draft=False, progress=None, extra_fields={}):
         """
         Uploads a video to youtube.
         """
@@ -169,8 +171,10 @@ class Studio:
             },
             "draftState": {
                 "isDraft": draft
-            }
+            },
         }
+        _data["initialMetadata"].update(extra_fields)
+
         upload = await self.session.post(
             f"https://studio.youtube.com/youtubei/v1/upload/createvideo?alt=json&key={self.config['INNERTUBE_API_KEY']}",
             json=_data

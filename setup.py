@@ -6,7 +6,7 @@ long_description = open('README.md').read()
 
 setuptools.setup(
     name='ytstudio',
-    version='1.5.0',
+    version='1.5.2',
     description='Unofficial API for Youtube Studio.',
     long_description=long_description,
     author='Yusuf Usta',
