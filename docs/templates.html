@@ -30,6 +30,8 @@
     channelId = &#34;&#34;
     videoId = &#34;&#34;
     sessionToken = &#34;&#34;
+    botguardResponse = &#34;&#34;
+    delegatedSessionId = &#34;&#34;
 
     CLIENT = {
         &#34;clientName&#34;: 62,
@@ -44,6 +46,8 @@
         self.config = config
         self.channelId = self.config[&#34;channelId&#34;]
         self.sessionToken = self.config[&#34;sessionToken&#34;]
+        self.botguardResponse = self.config[&#34;botguardResponse&#34;] if &#34;botguardResponse&#34; in self.config else &#34;&#34;
+        self.delegatedSessionId = self.config[&#34;delegatedSessionId&#34;] if &#34;delegatedSessionId&#34; in self.config else &#34;&#34;
         self._()
 
     def setVideoId(self, videoId):
@@ -114,14 +118,14 @@
                     }
                 },
                 &#34;user&#34;: {
+                    &#34;onBehalfOfUser&#34;: self.delegatedSessionId,
                     &#34;delegationContext&#34;: {
+                        &#34;externalChannelId&#34;: self.channelId,
                         &#34;roleType&#34;: {
                             &#34;channelRoleType&#34;: &#34;CREATOR_CHANNEL_ROLE_TYPE_OWNER&#34;
-                        },
-                        &#34;externalChannelId&#34;: self.channelId
+                        }
                     },
-                    &#34;serializedDelegationContext&#34;: &#34;&#34;,
-                    &#34;onBehalfOfUser&#34;: &#34;&#34;
+                    &#34;serializedDelegationContext&#34;: &#34;&#34;
                 },
                 &#34;clientScreenNonce&#34;: &#34;&#34;
             },
@@ -132,6 +136,9 @@
                 &#34;externalChannelId&#34;: self.channelId
             }
         }
+
+        if self.botguardResponse and self.botguardResponse != &#34;&#34;:
+            self.UPLOAD_VIDEO[&#34;botguardClientResponse&#34;] = self.botguardResponse
 
         self.METADATA_UPDATE = {
             &#34;encryptedVideoId&#34;: self.videoId,
@@ -255,6 +262,22 @@
         self.METADATA_UPDATE_MONETIZATION = {
             &#34;monetizationSettings&#34;: {
                 &#34;newMonetizeWithAds&#34;: True
+            }
+        }
+
+        self.METADATA_UPDATE_SCHEDULE = {
+            &#34;flowType&#34;: &#34;MDE_FLOW_TYPE_UPLOAD&#34;,
+            &#34;privacyState&#34;: {
+                &#34;newPrivacy&#34;: &#34;PRIVATE&#34;
+            },
+            &#34;scheduledPublishing&#34;: {
+                &#34;set&#34;: {
+                    &#34;timeSec&#34;: 0,
+                    &#34;privacy&#34;: &#34;PUBLIC&#34;
+                }
+            },
+            &#34;draftState&#34;: {
+                &#34;operation&#34;: &#34;MDE_DRAFT_STATE_UPDATE_OPERATION_REMOVE_DRAFT_STATE&#34;
             }
         }
 
@@ -661,6 +684,8 @@
     channelId = &#34;&#34;
     videoId = &#34;&#34;
     sessionToken = &#34;&#34;
+    botguardResponse = &#34;&#34;
+    delegatedSessionId = &#34;&#34;
 
     CLIENT = {
         &#34;clientName&#34;: 62,
@@ -675,6 +700,8 @@
         self.config = config
         self.channelId = self.config[&#34;channelId&#34;]
         self.sessionToken = self.config[&#34;sessionToken&#34;]
+        self.botguardResponse = self.config[&#34;botguardResponse&#34;] if &#34;botguardResponse&#34; in self.config else &#34;&#34;
+        self.delegatedSessionId = self.config[&#34;delegatedSessionId&#34;] if &#34;delegatedSessionId&#34; in self.config else &#34;&#34;
         self._()
 
     def setVideoId(self, videoId):
@@ -745,14 +772,14 @@
                     }
                 },
                 &#34;user&#34;: {
+                    &#34;onBehalfOfUser&#34;: self.delegatedSessionId,
                     &#34;delegationContext&#34;: {
+                        &#34;externalChannelId&#34;: self.channelId,
                         &#34;roleType&#34;: {
                             &#34;channelRoleType&#34;: &#34;CREATOR_CHANNEL_ROLE_TYPE_OWNER&#34;
-                        },
-                        &#34;externalChannelId&#34;: self.channelId
+                        }
                     },
-                    &#34;serializedDelegationContext&#34;: &#34;&#34;,
-                    &#34;onBehalfOfUser&#34;: &#34;&#34;
+                    &#34;serializedDelegationContext&#34;: &#34;&#34;
                 },
                 &#34;clientScreenNonce&#34;: &#34;&#34;
             },
@@ -763,6 +790,9 @@
                 &#34;externalChannelId&#34;: self.channelId
             }
         }
+
+        if self.botguardResponse and self.botguardResponse != &#34;&#34;:
+            self.UPLOAD_VIDEO[&#34;botguardClientResponse&#34;] = self.botguardResponse
 
         self.METADATA_UPDATE = {
             &#34;encryptedVideoId&#34;: self.videoId,
@@ -886,6 +916,22 @@
         self.METADATA_UPDATE_MONETIZATION = {
             &#34;monetizationSettings&#34;: {
                 &#34;newMonetizeWithAds&#34;: True
+            }
+        }
+
+        self.METADATA_UPDATE_SCHEDULE = {
+            &#34;flowType&#34;: &#34;MDE_FLOW_TYPE_UPLOAD&#34;,
+            &#34;privacyState&#34;: {
+                &#34;newPrivacy&#34;: &#34;PRIVATE&#34;
+            },
+            &#34;scheduledPublishing&#34;: {
+                &#34;set&#34;: {
+                    &#34;timeSec&#34;: 0,
+                    &#34;privacy&#34;: &#34;PUBLIC&#34;
+                }
+            },
+            &#34;draftState&#34;: {
+                &#34;operation&#34;: &#34;MDE_DRAFT_STATE_UPDATE_OPERATION_REMOVE_DRAFT_STATE&#34;
             }
         }
 
@@ -1274,7 +1320,15 @@
 <dd>
 <div class="desc"></div>
 </dd>
+<dt id="ytstudio.templates.Templates.botguardResponse"><code class="name">var <span class="ident">botguardResponse</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
 <dt id="ytstudio.templates.Templates.channelId"><code class="name">var <span class="ident">channelId</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="ytstudio.templates.Templates.delegatedSessionId"><code class="name">var <span class="ident">delegatedSessionId</span></code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
@@ -1323,9 +1377,11 @@
 <ul>
 <li>
 <h4><code><a title="ytstudio.templates.Templates" href="#ytstudio.templates.Templates">Templates</a></code></h4>
-<ul class="">
+<ul class="two-column">
 <li><code><a title="ytstudio.templates.Templates.CLIENT" href="#ytstudio.templates.Templates.CLIENT">CLIENT</a></code></li>
+<li><code><a title="ytstudio.templates.Templates.botguardResponse" href="#ytstudio.templates.Templates.botguardResponse">botguardResponse</a></code></li>
 <li><code><a title="ytstudio.templates.Templates.channelId" href="#ytstudio.templates.Templates.channelId">channelId</a></code></li>
+<li><code><a title="ytstudio.templates.Templates.delegatedSessionId" href="#ytstudio.templates.Templates.delegatedSessionId">delegatedSessionId</a></code></li>
 <li><code><a title="ytstudio.templates.Templates.sessionToken" href="#ytstudio.templates.Templates.sessionToken">sessionToken</a></code></li>
 <li><code><a title="ytstudio.templates.Templates.setVideoId" href="#ytstudio.templates.Templates.setVideoId">setVideoId</a></code></li>
 <li><code><a title="ytstudio.templates.Templates.videoId" href="#ytstudio.templates.Templates.videoId">videoId</a></code></li>

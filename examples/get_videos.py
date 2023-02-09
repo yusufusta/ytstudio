@@ -6,7 +6,7 @@ import os
 
 async def get_video_list():
     if os.path.exists("./login.json"):
-        LOGIN_FILE = json.loads(open("./login.json", "r"))
+        LOGIN_FILE = json.loads(open("./login.json", "r").read())
     else:
         exit("can't run example without login json")
 

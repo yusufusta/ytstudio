@@ -34,7 +34,7 @@ Also you need SESSION_TOKEN for (upload/edit/delete) video. [How to get Session 
 
 ## Author
 
-Yusuf Usta, yusuf@usta.email
+Yusuf Usta, me@yusufusta.dev
 
 ## Note
 

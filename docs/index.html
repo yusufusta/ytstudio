@@ -41,6 +41,7 @@ from .templates import Templates
 import typing
 import pathlib
 import base64
+import datetime
 
 
 class Studio:
@@ -54,7 +55,7 @@ class Studio:
         self.SAPISIDHASH = self.generateSAPISIDHASH(cookies[&#39;SAPISID&#39;])
         self.cookies = cookies
         self.Cookie = &#34; &#34;.join(
-            [f&#34;{c}={cookies[c]};&#34; if not c == &#34;SESSION_TOKEN&#34; else &#34;&#34; for c in cookies.keys()])
+            [f&#34;{c}={cookies[c]};&#34; if not c in [&#34;SESSION_TOKEN&#34;, &#34;BOTGUARD_RESPONSE&#34;] else &#34;&#34; for c in cookies.keys()])
         self.HEADERS = {
             &#39;Authorization&#39;: f&#39;SAPISIDHASH {self.SAPISIDHASH}&#39;,
             &#39;Content-Type&#39;: &#39;application/json&#39;,
@@ -69,7 +70,7 @@ class Studio:
         self.js.execute(&#34;var window = {ytcfg: {}};&#34;)
 
     def __del__(self):
-        self.loop.create_task(self.session.close())
+        asyncio.run(self.session.close())
 
     def generateSAPISIDHASH(self, SAPISID) -&gt; str:
         hash = f&#34;{round(time.time())} {SAPISID} {self.YT_STUDIO_URL}&#34;
@@ -95,7 +96,7 @@ class Studio:
 
         INNERTUBE_API_KEY = self.js.window.ytcfg.data_.INNERTUBE_API_KEY
         CHANNEL_ID = self.js.window.ytcfg.data_.CHANNEL_ID
-        # DELEGATED_SESSION_ID = js.window.ytcfg.data_.DELEGATED_SESSION_ID Looking Google removed this key
+        DELEGATED_SESSION_ID = self.js.window.ytcfg.data_.DELEGATED_SESSION_ID
 
         if INNERTUBE_API_KEY == None or CHANNEL_ID == None:
             raise Exception(
@@ -104,7 +105,9 @@ class Studio:
                        &#39;CHANNEL_ID&#39;: CHANNEL_ID, &#39;data_&#39;: self.js.window.ytcfg.data_}
         self.templates = Templates({
             &#39;channelId&#39;: CHANNEL_ID,
-            &#39;sessionToken&#39;: self.cookies[&#39;SESSION_TOKEN&#39;]
+            &#39;sessionToken&#39;: self.cookies[&#39;SESSION_TOKEN&#39;],
+            &#39;botguardResponse&#39;: self.cookies[&#39;BOTGUARD_RESPONSE&#39;] if &#39;BOTGUARD_RESPONSE&#39; in self.cookies else &#39;&#39;,
+            &#39;delegatedSessionId&#39;: DELEGATED_SESSION_ID
         })
 
         return True
@@ -161,7 +164,7 @@ class Studio:
         _ = json.loads(_)
         return _[&#39;scottyResourceId&#39;]
 
-    async def uploadVideo(self, file_name, title=f&#34;New Video {round(time.time())}&#34;, description=&#39;This video uploaded by github.com/yusufusta/ytstudio&#39;, privacy=&#39;PRIVATE&#39;, draft=False, progress=None):
+    async def uploadVideo(self, file_name, title=f&#34;New Video {round(time.time())}&#34;, description=&#39;This video uploaded by github.com/yusufusta/ytstudio&#39;, privacy=&#39;PRIVATE&#39;, draft=False, progress=None, extra_fields={}):
         &#34;&#34;&#34;
         Uploads a video to youtube.
         &#34;&#34;&#34;
@@ -197,8 +200,10 @@ class Studio:
             },
             &#34;draftState&#34;: {
                 &#34;isDraft&#34;: draft
-            }
+            },
         }
+        _data[&#34;initialMetadata&#34;].update(extra_fields)
+
         upload = await self.session.post(
             f&#34;https://studio.youtube.com/youtubei/v1/upload/createvideo?alt=json&amp;key={self.config[&#39;INNERTUBE_API_KEY&#39;]}&#34;,
             json=_data
@@ -312,7 +317,37 @@ class Studio:
             f&#34;https://studio.youtube.com/youtubei/v1/video_manager/metadata_update?alt=json&amp;key={self.config[&#39;INNERTUBE_API_KEY&#39;]}&#34;,
             json=_data
         )
-        return await update.json()</code></pre>
+        return await update.json()
+
+    async def scheduledUploadVideo(self, file_name, title=&#34;New Video&#34;, description=&#39;This video uploaded by github.com/yusufusta/ytstudio&#39;, now_privacy=&#39;PRIVATE&#39;, schedule_time: datetime.datetime | int = 0, scheduled_privacy=&#34;PUBLIC&#34;, progress=None, extra_fields={}):
+        &#34;&#34;&#34;
+        Scheduled uploads a video to youtube.
+        &#34;&#34;&#34;
+        upload = await self.uploadVideo(file_name, title, description, now_privacy, draft=True, progress=progress, extra_fields=extra_fields)
+        if not &#34;videoId&#34; in upload:
+            return upload
+
+        self.templates.setVideoId(upload[&#34;videoId&#34;])
+
+        _data = self.templates.METADATA_UPDATE
+        _schedule = self.templates.METADATA_UPDATE_SCHEDULE
+
+        if isinstance(schedule_time, datetime.datetime):
+            schedule_time = int(schedule_time.timestamp())
+        elif schedule_time == 0:
+            schedule_time = int(datetime.datetime.now().timestamp()) + 60
+
+        _schedule[&#34;scheduledPublishing&#34;][&#34;set&#34;][&#34;timeSec&#34;] = schedule_time
+        _schedule[&#34;scheduledPublishing&#34;][&#34;set&#34;][&#34;privacy&#34;] = scheduled_privacy
+        _schedule[&#34;privacyState&#34;][&#34;newPrivacy&#34;] = now_privacy
+
+        _data.update(self.templates.METADATA_UPDATE_SCHEDULE)
+
+        update = await self.session.post(
+            f&#34;https://studio.youtube.com/youtubei/v1/video_manager/metadata_update?alt=json&amp;key={self.config[&#39;INNERTUBE_API_KEY&#39;]}&#34;,
+            json=_data
+        )
+        return upload, await update.json()</code></pre>
 </details>
 </section>
 <section>
@@ -352,7 +387,7 @@ class Studio:
         self.SAPISIDHASH = self.generateSAPISIDHASH(cookies[&#39;SAPISID&#39;])
         self.cookies = cookies
         self.Cookie = &#34; &#34;.join(
-            [f&#34;{c}={cookies[c]};&#34; if not c == &#34;SESSION_TOKEN&#34; else &#34;&#34; for c in cookies.keys()])
+            [f&#34;{c}={cookies[c]};&#34; if not c in [&#34;SESSION_TOKEN&#34;, &#34;BOTGUARD_RESPONSE&#34;] else &#34;&#34; for c in cookies.keys()])
         self.HEADERS = {
             &#39;Authorization&#39;: f&#39;SAPISIDHASH {self.SAPISIDHASH}&#39;,
             &#39;Content-Type&#39;: &#39;application/json&#39;,
@@ -367,7 +402,7 @@ class Studio:
         self.js.execute(&#34;var window = {ytcfg: {}};&#34;)
 
     def __del__(self):
-        self.loop.create_task(self.session.close())
+        asyncio.run(self.session.close())
 
     def generateSAPISIDHASH(self, SAPISID) -&gt; str:
         hash = f&#34;{round(time.time())} {SAPISID} {self.YT_STUDIO_URL}&#34;
@@ -393,7 +428,7 @@ class Studio:
 
         INNERTUBE_API_KEY = self.js.window.ytcfg.data_.INNERTUBE_API_KEY
         CHANNEL_ID = self.js.window.ytcfg.data_.CHANNEL_ID
-        # DELEGATED_SESSION_ID = js.window.ytcfg.data_.DELEGATED_SESSION_ID Looking Google removed this key
+        DELEGATED_SESSION_ID = self.js.window.ytcfg.data_.DELEGATED_SESSION_ID
 
         if INNERTUBE_API_KEY == None or CHANNEL_ID == None:
             raise Exception(
@@ -402,7 +437,9 @@ class Studio:
                        &#39;CHANNEL_ID&#39;: CHANNEL_ID, &#39;data_&#39;: self.js.window.ytcfg.data_}
         self.templates = Templates({
             &#39;channelId&#39;: CHANNEL_ID,
-            &#39;sessionToken&#39;: self.cookies[&#39;SESSION_TOKEN&#39;]
+            &#39;sessionToken&#39;: self.cookies[&#39;SESSION_TOKEN&#39;],
+            &#39;botguardResponse&#39;: self.cookies[&#39;BOTGUARD_RESPONSE&#39;] if &#39;BOTGUARD_RESPONSE&#39; in self.cookies else &#39;&#39;,
+            &#39;delegatedSessionId&#39;: DELEGATED_SESSION_ID
         })
 
         return True
@@ -459,7 +496,7 @@ class Studio:
         _ = json.loads(_)
         return _[&#39;scottyResourceId&#39;]
 
-    async def uploadVideo(self, file_name, title=f&#34;New Video {round(time.time())}&#34;, description=&#39;This video uploaded by github.com/yusufusta/ytstudio&#39;, privacy=&#39;PRIVATE&#39;, draft=False, progress=None):
+    async def uploadVideo(self, file_name, title=f&#34;New Video {round(time.time())}&#34;, description=&#39;This video uploaded by github.com/yusufusta/ytstudio&#39;, privacy=&#39;PRIVATE&#39;, draft=False, progress=None, extra_fields={}):
         &#34;&#34;&#34;
         Uploads a video to youtube.
         &#34;&#34;&#34;
@@ -495,8 +532,10 @@ class Studio:
             },
             &#34;draftState&#34;: {
                 &#34;isDraft&#34;: draft
-            }
+            },
         }
+        _data[&#34;initialMetadata&#34;].update(extra_fields)
+
         upload = await self.session.post(
             f&#34;https://studio.youtube.com/youtubei/v1/upload/createvideo?alt=json&amp;key={self.config[&#39;INNERTUBE_API_KEY&#39;]}&#34;,
             json=_data
@@ -610,7 +649,37 @@ class Studio:
             f&#34;https://studio.youtube.com/youtubei/v1/video_manager/metadata_update?alt=json&amp;key={self.config[&#39;INNERTUBE_API_KEY&#39;]}&#34;,
             json=_data
         )
-        return await update.json()</code></pre>
+        return await update.json()
+
+    async def scheduledUploadVideo(self, file_name, title=&#34;New Video&#34;, description=&#39;This video uploaded by github.com/yusufusta/ytstudio&#39;, now_privacy=&#39;PRIVATE&#39;, schedule_time: datetime.datetime | int = 0, scheduled_privacy=&#34;PUBLIC&#34;, progress=None, extra_fields={}):
+        &#34;&#34;&#34;
+        Scheduled uploads a video to youtube.
+        &#34;&#34;&#34;
+        upload = await self.uploadVideo(file_name, title, description, now_privacy, draft=True, progress=progress, extra_fields=extra_fields)
+        if not &#34;videoId&#34; in upload:
+            return upload
+
+        self.templates.setVideoId(upload[&#34;videoId&#34;])
+
+        _data = self.templates.METADATA_UPDATE
+        _schedule = self.templates.METADATA_UPDATE_SCHEDULE
+
+        if isinstance(schedule_time, datetime.datetime):
+            schedule_time = int(schedule_time.timestamp())
+        elif schedule_time == 0:
+            schedule_time = int(datetime.datetime.now().timestamp()) + 60
+
+        _schedule[&#34;scheduledPublishing&#34;][&#34;set&#34;][&#34;timeSec&#34;] = schedule_time
+        _schedule[&#34;scheduledPublishing&#34;][&#34;set&#34;][&#34;privacy&#34;] = scheduled_privacy
+        _schedule[&#34;privacyState&#34;][&#34;newPrivacy&#34;] = now_privacy
+
+        _data.update(self.templates.METADATA_UPDATE_SCHEDULE)
+
+        update = await self.session.post(
+            f&#34;https://studio.youtube.com/youtubei/v1/video_manager/metadata_update?alt=json&amp;key={self.config[&#39;INNERTUBE_API_KEY&#39;]}&#34;,
+            json=_data
+        )
+        return upload, await update.json()</code></pre>
 </details>
 <h3>Class variables</h3>
 <dl>
@@ -902,7 +971,7 @@ class Studio:
 
     INNERTUBE_API_KEY = self.js.window.ytcfg.data_.INNERTUBE_API_KEY
     CHANNEL_ID = self.js.window.ytcfg.data_.CHANNEL_ID
-    # DELEGATED_SESSION_ID = js.window.ytcfg.data_.DELEGATED_SESSION_ID Looking Google removed this key
+    DELEGATED_SESSION_ID = self.js.window.ytcfg.data_.DELEGATED_SESSION_ID
 
     if INNERTUBE_API_KEY == None or CHANNEL_ID == None:
         raise Exception(
@@ -911,10 +980,52 @@ class Studio:
                    &#39;CHANNEL_ID&#39;: CHANNEL_ID, &#39;data_&#39;: self.js.window.ytcfg.data_}
     self.templates = Templates({
         &#39;channelId&#39;: CHANNEL_ID,
-        &#39;sessionToken&#39;: self.cookies[&#39;SESSION_TOKEN&#39;]
+        &#39;sessionToken&#39;: self.cookies[&#39;SESSION_TOKEN&#39;],
+        &#39;botguardResponse&#39;: self.cookies[&#39;BOTGUARD_RESPONSE&#39;] if &#39;BOTGUARD_RESPONSE&#39; in self.cookies else &#39;&#39;,
+        &#39;delegatedSessionId&#39;: DELEGATED_SESSION_ID
     })
 
     return True</code></pre>
+</details>
+</dd>
+<dt id="ytstudio.Studio.scheduledUploadVideo"><code class="name flex">
+<span>async def <span class="ident">scheduledUploadVideo</span></span>(<span>self, file_name, title='New Video', description='This video uploaded by github.com/yusufusta/ytstudio', now_privacy='PRIVATE', schedule_time: datetime.datetime | int = 0, scheduled_privacy='PUBLIC', progress=None, extra_fields={})</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Scheduled uploads a video to youtube.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">async def scheduledUploadVideo(self, file_name, title=&#34;New Video&#34;, description=&#39;This video uploaded by github.com/yusufusta/ytstudio&#39;, now_privacy=&#39;PRIVATE&#39;, schedule_time: datetime.datetime | int = 0, scheduled_privacy=&#34;PUBLIC&#34;, progress=None, extra_fields={}):
+    &#34;&#34;&#34;
+    Scheduled uploads a video to youtube.
+    &#34;&#34;&#34;
+    upload = await self.uploadVideo(file_name, title, description, now_privacy, draft=True, progress=progress, extra_fields=extra_fields)
+    if not &#34;videoId&#34; in upload:
+        return upload
+
+    self.templates.setVideoId(upload[&#34;videoId&#34;])
+
+    _data = self.templates.METADATA_UPDATE
+    _schedule = self.templates.METADATA_UPDATE_SCHEDULE
+
+    if isinstance(schedule_time, datetime.datetime):
+        schedule_time = int(schedule_time.timestamp())
+    elif schedule_time == 0:
+        schedule_time = int(datetime.datetime.now().timestamp()) + 60
+
+    _schedule[&#34;scheduledPublishing&#34;][&#34;set&#34;][&#34;timeSec&#34;] = schedule_time
+    _schedule[&#34;scheduledPublishing&#34;][&#34;set&#34;][&#34;privacy&#34;] = scheduled_privacy
+    _schedule[&#34;privacyState&#34;][&#34;newPrivacy&#34;] = now_privacy
+
+    _data.update(self.templates.METADATA_UPDATE_SCHEDULE)
+
+    update = await self.session.post(
+        f&#34;https://studio.youtube.com/youtubei/v1/video_manager/metadata_update?alt=json&amp;key={self.config[&#39;INNERTUBE_API_KEY&#39;]}&#34;,
+        json=_data
+    )
+    return upload, await update.json()</code></pre>
 </details>
 </dd>
 <dt id="ytstudio.Studio.uploadFileToYoutube"><code class="name flex">
@@ -942,7 +1053,7 @@ class Studio:
 </details>
 </dd>
 <dt id="ytstudio.Studio.uploadVideo"><code class="name flex">
-<span>async def <span class="ident">uploadVideo</span></span>(<span>self, file_name, title='New Video 1637196488', description='This video uploaded by github.com/yusufusta/ytstudio', privacy='PRIVATE', draft=False, progress=None)</span>
+<span>async def <span class="ident">uploadVideo</span></span>(<span>self, file_name, title='New Video 1675980145', description='This video uploaded by github.com/yusufusta/ytstudio', privacy='PRIVATE', draft=False, progress=None, extra_fields={})</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Uploads a video to youtube.</p></div>
@@ -950,7 +1061,7 @@ class Studio:
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">async def uploadVideo(self, file_name, title=f&#34;New Video {round(time.time())}&#34;, description=&#39;This video uploaded by github.com/yusufusta/ytstudio&#39;, privacy=&#39;PRIVATE&#39;, draft=False, progress=None):
+<pre><code class="python">async def uploadVideo(self, file_name, title=f&#34;New Video {round(time.time())}&#34;, description=&#39;This video uploaded by github.com/yusufusta/ytstudio&#39;, privacy=&#39;PRIVATE&#39;, draft=False, progress=None, extra_fields={}):
     &#34;&#34;&#34;
     Uploads a video to youtube.
     &#34;&#34;&#34;
@@ -986,8 +1097,10 @@ class Studio:
         },
         &#34;draftState&#34;: {
             &#34;isDraft&#34;: draft
-        }
+        },
     }
+    _data[&#34;initialMetadata&#34;].update(extra_fields)
+
     upload = await self.session.post(
         f&#34;https://studio.youtube.com/youtubei/v1/upload/createvideo?alt=json&amp;key={self.config[&#39;INNERTUBE_API_KEY&#39;]}&#34;,
         json=_data
@@ -1016,7 +1129,7 @@ class Studio:
 <ul>
 <li>
 <h4><code><a title="ytstudio.Studio" href="#ytstudio.Studio">Studio</a></code></h4>
-<ul class="two-column">
+<ul class="">
 <li><code><a title="ytstudio.Studio.CHUNK_SIZE" href="#ytstudio.Studio.CHUNK_SIZE">CHUNK_SIZE</a></code></li>
 <li><code><a title="ytstudio.Studio.TRANSFERRED_BYTES" href="#ytstudio.Studio.TRANSFERRED_BYTES">TRANSFERRED_BYTES</a></code></li>
 <li><code><a title="ytstudio.Studio.USER_AGENT" href="#ytstudio.Studio.USER_AGENT">USER_AGENT</a></code></li>
@@ -1031,6 +1144,7 @@ class Studio:
 <li><code><a title="ytstudio.Studio.getVideo" href="#ytstudio.Studio.getVideo">getVideo</a></code></li>
 <li><code><a title="ytstudio.Studio.listVideos" href="#ytstudio.Studio.listVideos">listVideos</a></code></li>
 <li><code><a title="ytstudio.Studio.login" href="#ytstudio.Studio.login">login</a></code></li>
+<li><code><a title="ytstudio.Studio.scheduledUploadVideo" href="#ytstudio.Studio.scheduledUploadVideo">scheduledUploadVideo</a></code></li>
 <li><code><a title="ytstudio.Studio.uploadFileToYoutube" href="#ytstudio.Studio.uploadFileToYoutube">uploadFileToYoutube</a></code></li>
 <li><code><a title="ytstudio.Studio.uploadVideo" href="#ytstudio.Studio.uploadVideo">uploadVideo</a></code></li>
 </ul>

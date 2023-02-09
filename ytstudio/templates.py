@@ -237,6 +237,22 @@ class Templates:
             }
         }
 
+        self.METADATA_UPDATE_SCHEDULE = {
+            "flowType": "MDE_FLOW_TYPE_UPLOAD",
+            "privacyState": {
+                "newPrivacy": "PRIVATE"
+            },
+            "scheduledPublishing": {
+                "set": {
+                    "timeSec": 0,
+                    "privacy": "PUBLIC"
+                }
+            },
+            "draftState": {
+                "operation": "MDE_DRAFT_STATE_UPDATE_OPERATION_REMOVE_DRAFT_STATE"
+            }
+        }
+
         self.LIST_VIDEOS = {
             "filter": {
                 "and": {

@@ -13,6 +13,7 @@ from .templates import Templates
 import typing
 import pathlib
 import base64
+import datetime
 
 
 class Studio:
@@ -41,7 +42,7 @@ class Studio:
         self.js.execute("var window = {ytcfg: {}};")
 
     def __del__(self):
-        self.loop.create_task(self.session.close())
+        asyncio.run(self.session.close())
 
     def generateSAPISIDHASH(self, SAPISID) -> str:
         hash = f"{round(time.time())} {SAPISID} {self.YT_STUDIO_URL}"
@@ -289,3 +290,33 @@ class Studio:
             json=_data
         )
         return await update.json()
+
+    async def scheduledUploadVideo(self, file_name, title="New Video", description='This video uploaded by github.com/yusufusta/ytstudio', now_privacy='PRIVATE', schedule_time: datetime.datetime | int = 0, scheduled_privacy="PUBLIC", progress=None, extra_fields={}):
+        """
+        Scheduled uploads a video to youtube.
+        """
+        upload = await self.uploadVideo(file_name, title, description, now_privacy, draft=True, progress=progress, extra_fields=extra_fields)
+        if not "videoId" in upload:
+            return upload
+
+        self.templates.setVideoId(upload["videoId"])
+
+        _data = self.templates.METADATA_UPDATE
+        _schedule = self.templates.METADATA_UPDATE_SCHEDULE
+
+        if isinstance(schedule_time, datetime.datetime):
+            schedule_time = int(schedule_time.timestamp())
+        elif schedule_time == 0:
+            schedule_time = int(datetime.datetime.now().timestamp()) + 60
+
+        _schedule["scheduledPublishing"]["set"]["timeSec"] = schedule_time
+        _schedule["scheduledPublishing"]["set"]["privacy"] = scheduled_privacy
+        _schedule["privacyState"]["newPrivacy"] = now_privacy
+
+        _data.update(self.templates.METADATA_UPDATE_SCHEDULE)
+
+        update = await self.session.post(
+            f"https://studio.youtube.com/youtubei/v1/video_manager/metadata_update?alt=json&key={self.config['INNERTUBE_API_KEY']}",
+            json=_data
+        )
+        return upload, await update.json()

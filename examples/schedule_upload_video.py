@@ -2,6 +2,7 @@ from ytstudio import Studio
 import asyncio
 import os
 import json
+import datetime
 
 
 def progress(yuklenen, toplam):
@@ -19,8 +20,8 @@ yt = Studio(LOGIN_FILE)
 
 async def main():
     await yt.login()
-    sonuc = await yt.uploadVideo(os.path.join(os.getcwd(), "test_video.mp4"), progress=progress)
-    print(f"successfully uploaded! videoId: {sonuc['videoId']}")
+    up_result, edit_result = await yt.scheduledUploadVideo(os.path.join(os.getcwd(), "test_video.mp4"), progress=progress, schedule_time=datetime.datetime.now() + datetime.timedelta(minutes=30), scheduled_privacy="PUBLIC", )
+    print(f"successfully uploaded! videoId: {up_result['videoId']}")
 
 loop = asyncio.get_event_loop()
 loop.run_until_complete(main())
