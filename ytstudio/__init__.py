@@ -155,7 +155,6 @@ class Studio:
 
         uploadUrl = uploadRequest.headers.get("x-goog-upload-url")
         scottyResourceId = await self.uploadFileToYoutube(uploadUrl, file_name)
-
         _data = self.templates.UPLOAD_VIDEO
         _data["resourceId"]["scottyResourceId"]["id"] = scottyResourceId
         _data["frontendUploadId"] = frontEndUID
@@ -297,7 +296,8 @@ class Studio:
         """
         upload = await self.uploadVideo(file_name, title, description, now_privacy, draft=True, progress=progress, extra_fields=extra_fields)
         if not "videoId" in upload:
-            return upload
+            raise Exception(
+                "Video upload failed. Please check your cookies (specially SESSION_TOKEN)", upload)
 
         self.templates.setVideoId(upload["videoId"])
 
@@ -312,11 +312,11 @@ class Studio:
         _schedule["scheduledPublishing"]["set"]["timeSec"] = schedule_time
         _schedule["scheduledPublishing"]["set"]["privacy"] = scheduled_privacy
         _schedule["privacyState"]["newPrivacy"] = now_privacy
-
-        _data.update(self.templates.METADATA_UPDATE_SCHEDULE)
+        _data.update(_schedule)
 
         update = await self.session.post(
             f"https://studio.youtube.com/youtubei/v1/video_manager/metadata_update?alt=json&key={self.config['INNERTUBE_API_KEY']}",
             json=_data
         )
-        return upload, await update.json()
+        up = await update.json()
+        return upload, up
