@@ -290,7 +290,7 @@ class Studio:
         )
         return await update.json()
 
-    async def scheduledUploadVideo(self, file_name, title="New Video", description='This video uploaded by github.com/yusufusta/ytstudio', now_privacy='PRIVATE', schedule_time: datetime.datetime | int = 0, scheduled_privacy="PUBLIC", progress=None, extra_fields={}):
+    async def scheduledUploadVideo(self, file_name, title="New Video", description='This video uploaded by github.com/yusufusta/ytstudio', now_privacy='PRIVATE', schedule_time: datetime.datetime = datetime.datetime.now(), scheduled_privacy="PUBLIC", progress=None, extra_fields={}):
         """
         Scheduled uploads a video to youtube.
         """
